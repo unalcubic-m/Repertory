@@ -35,13 +35,13 @@ The scheduling model and the audio-difficulty model are related but distinct:
 - **Runtime:** one Docker/Compose application workload; no Redis or Celery in the MVP
 - **Client:** responsive, online-first, installable PWA for desktop and Android
 
-The intended private production hostname is:
+The only approved browser-facing production URL is:
 
 ```text
 https://repertory.metrekare.cloud
 ```
 
-It is planned for private split DNS and the existing private Traefik ingress, reachable only from the home LAN and approved WireGuard clients. Public application exposure is not part of the initial scope.
+Do not substitute another subdomain or a path-prefix deployment. The URL is planned for private split DNS and the existing private Traefik ingress, reachable only from the home LAN and approved WireGuard clients. Public application exposure is not part of the initial scope.
 
 The application will be designed so a later guarded scale-to-zero layer can stop it after inactivity and wake it on the first private request. The normal always-running deployment must be developed, measured, and accepted first.
 
