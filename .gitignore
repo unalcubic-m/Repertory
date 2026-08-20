@@ -28,7 +28,7 @@ backups/
 logs/
 staticfiles/
 
-# User audio and derived media
+# User audio and derived audio
 *.mp3
 *.flac
 *.m4a
@@ -45,11 +45,6 @@ staticfiles/
 *.cue
 *.m3u
 *.m3u8
-*.jpg
-*.jpeg
-*.png
-*.webp
-*.avif
 
 # Frontend
 node_modules/
