@@ -6,7 +6,7 @@ Use the prompt below from the Repertory repository root.
 
 You are the planning agent for `unalcubic-m/Repertory`.
 
-Your task is to produce a complete, implementation-ready plan for Repertory, a private web application that trains recognition of classical-music works and movements from changing user-supplied audio excerpts. This is a **planning and documentation task only**. Do not scaffold the Django project, add migrations, implement endpoints, build containers, change homelab infrastructure, or deploy anything.
+Your task is to produce a complete, implementation-ready plan for Repertory, a private web application that trains recognition of classical-music works and movements from changing user-supplied audio excerpts. This is a **planning and documentation task only**. Do not scaffold the Django project, add migrations, implement endpoints, build containers, change HomelabTrack or homelab infrastructure, or deploy anything.
 
 ## Repository and product context
 
@@ -18,7 +18,7 @@ Read these files in full before doing anything else:
 4. `docs/architecture-decisions.md`
 5. `docs/roadmap.md`
 
-Then inspect the complete repository tree, current branch, recent commits, open issues, and any existing planning files. Do not assume a referenced file exists without checking it.
+Then inspect the complete repository tree, current branch, recent commits, open issues, pull requests, and any existing planning files. Do not assume a referenced file exists without checking it. When documents conflict, identify the conflict explicitly instead of silently selecting one interpretation.
 
 The key product loop is:
 
@@ -28,9 +28,36 @@ The key product loop is:
 4. The user types the work or movement title; this is free recall, not multiple choice.
 5. The app reveals the canonical answer and the user rates Again/Hard/Good/Easy.
 6. FSRS schedules the next review.
-7. A separate challenge policy makes future excerpts shorter/easier/harder based on performance.
+7. A separate challenge policy makes future excerpts shorter, easier, or harder based on performance.
 
 A card represents a work or movement to recognize, **not one fixed audio clip**.
+
+Maintain this strict separation:
+
+- **FSRS determines when a recognition target is reviewed.**
+- **The excerpt-challenge policy determines how difficult that review sounds.**
+
+Do not manipulate FSRS intervals merely to make excerpts shorter or longer.
+
+## Canonical URL and privacy invariant
+
+The one and only approved browser-facing production URL is:
+
+```text
+https://repertory.metrekare.cloud
+```
+
+Treat this as a fixed project decision.
+
+- Do not propose another subdomain.
+- Do not propose mounting the application under a path prefix.
+- Do not create or assume a public application route.
+- The URL is privately resolved and reachable only from the home LAN and explicitly approved WireGuard clients through the existing private Traefik ingress.
+- Native Django authentication remains required even on the private network.
+- Use `repertory.metrekare.cloud` where a hostname is technically required, such as Django `ALLOWED_HOSTS`, DNS, TLS SNI, or a Traefik Host rule.
+- Use `https://repertory.metrekare.cloud` where an origin or browser-facing URL is required, including Django `CSRF_TRUSTED_ORIGINS`, documentation, tests, PWA configuration, and examples.
+- PWA `start_url` and service-worker scope should be designed for `/` on this dedicated origin, not for a subpath deployment.
+- All newly produced documentation must use this exact canonical URL consistently.
 
 ## Accepted starting decisions
 
@@ -47,21 +74,22 @@ Treat these as the starting architecture. Challenge one only when you can show a
 - `uv` for Python dependency management.
 - Docker/Compose for reproducible development and eventual deployment.
 - Responsive installable PWA, online-first.
-- Canonical production hostname `repertory.metrekare.cloud`.
+- Canonical production URL `https://repertory.metrekare.cloud`.
 - Private access only through LAN and approved WireGuard clients via the existing private Traefik ingress.
+- Closed registration and native Django authentication.
 - No public application route, public registration, Redis, Celery, separate API service, Kubernetes, or native mobile app in the MVP.
-- Scale-to-zero is optional and later; the warm deployment must work first.
+- Scale-to-zero is optional and later; the normal always-running deployment must work, be measured, and be accepted first.
 
 ## Research requirements
 
-Use current official/primary sources for decisions that depend on framework, package, browser, database, FFmpeg, PWA, Docker, Traefik, Sablier, or security behavior. Prefer:
+Use current official or primary sources for decisions that depend on framework, package, browser, database, FFmpeg, PWA, Docker, Traefik, Sablier, or security behavior. Prefer:
 
 - official Django documentation and release/support information;
 - the official Open Spaced Repetition/`py-fsrs` repository and documentation;
 - Python, SQLite, FFmpeg, browser/MDN, Docker, Traefik, and Sablier documentation;
 - standards or upstream project documentation rather than blog summaries.
 
-Record links and the date checked in the resulting planning documents. Do not copy large passages. State uncertainty where device/browser behavior still requires an experiment.
+Record links and the date checked in the resulting planning documents. Do not copy large passages. Clearly distinguish verified facts, selected decisions, assumptions, and experiments still required. State uncertainty where device or browser behavior still requires an experiment.
 
 ## Required planning work
 
@@ -69,9 +97,9 @@ Record links and the date checked in the resulting planning documents. Do not co
 
 Create a requirement matrix mapping every MVP requirement and important edge case from `docs/product-brief.md` to:
 
-- proposed component/module;
+- proposed component or module;
 - persistence involved;
-- security/privacy concern;
+- security and privacy concern;
 - required test level;
 - delivery phase;
 - acceptance evidence.
@@ -82,189 +110,381 @@ Identify contradictions, missing decisions, and scope that should be postponed. 
 
 Compare at least two reasonable schemas, then select one. The chosen model must handle:
 
-- composers and aliases;
+- composers and composer aliases;
 - parent collections and child works, including *The Four Seasons* → *Spring* → movements;
-- movements and their ordering/tempo labels;
-- recordings independent from works;
+- movements and their ordering and tempo labels;
+- recordings independently from musical works;
 - an audio file containing one movement, one complete work, or several movements;
 - multiple recordings for one recognition target;
 - work-level and movement-level recognition targets;
 - canonical answers and explicit user-managed aliases;
-- per-user scheduler and challenge state;
+- per-user scheduler state;
+- per-user challenge state;
 - append-only review logs;
-- archive/delete semantics;
-- checksums, duration, permitted/unusable regions, and missing-media state;
-- future migration without adopting an unnecessarily generic schema now.
+- archive and deletion semantics;
+- checksums, duration, permitted regions, unusable regions, and missing-media state;
+- a future PostgreSQL migration without adopting an unnecessarily generic schema now.
 
-For every model/table specify fields, types, nullability, unique/check constraints, indexes, ownership, lifecycle, and deletion behavior. Include a Mermaid ER diagram and representative examples for Vivaldi's *The Four Seasons*, Bach's *Brandenburg Concerto No. 3*, and a multi-movement recording.
+For every model or table specify:
+
+- fields and types;
+- nullability;
+- unique and check constraints;
+- indexes;
+- user ownership;
+- lifecycle;
+- archive and deletion behavior;
+- backup and restore expectations.
+
+Include a Mermaid entity-relationship diagram and representative worked examples for:
+
+- Vivaldi's *The Four Seasons*;
+- Bach's *Brandenburg Concerto No. 3*;
+- a recording containing several movements.
 
 ### 3. Specify the review state machine
 
-Define the server-authoritative lifecycle from “request next review” through playback, answer submission, reveal, rating, and completion. Resolve:
+Define the server-authoritative lifecycle from requesting the next review through playback, typed-answer submission, answer reveal, rating, scheduler transition, challenge transition, completion, and immediate accidental-rating undo.
 
-- one-time review tokens/session rows;
+Resolve:
+
+- one-time review tokens or session rows;
 - expiration;
-- refresh/reconnect behavior;
+- refresh and reconnect behavior;
 - two tabs and duplicate submissions;
 - when the excerpt tuple becomes immutable;
-- what data is safe to send before reveal;
+- what information is safe to send before answer reveal;
 - replay and hint tracking;
 - immediate rating undo;
-- transactional boundaries between review log, FSRS state, and challenge state;
-- clock/timezone handling;
+- transaction boundaries between review log, FSRS state, and challenge state;
+- UTC and timezone handling;
 - idempotency and audit requirements.
 
-Include sequence diagrams for a normal review, duplicate submission, expired session, and wake-from-sleep request.
+Include sequence diagrams for:
+
+- a normal review;
+- duplicate answer or rating submission;
+- an expired review;
+- refresh during a review;
+- the first request after the application wakes from sleep.
 
 ### 4. Define deterministic answer matching
 
-Specify exact Unicode normalization, case folding, punctuation, whitespace, numeral, opus/catalogue, and localized-title behavior. Explain how canonical answers and aliases are stored and compared, how conflicts are surfaced, and how a rejected answer can be promoted to an alias after reveal.
+Specify exact normalization rules for:
 
-Do not use an LLM, embeddings, or unexplained fuzzy matching as the MVP judge. If a conservative edit-distance suggestion is proposed, keep it advisory and document false-positive controls.
+- Unicode;
+- case folding;
+- whitespace;
+- punctuation;
+- apostrophes and hyphens;
+- Roman and Arabic numerals;
+- opus and catalogue numbers;
+- localized titles;
+- composer inclusion or exclusion.
+
+The MVP judge must match only:
+
+- the canonical answer;
+- explicit user-managed aliases.
+
+Do not use an LLM, embeddings, or unexplained fuzzy matching as the correctness judge. A conservative edit-distance result may be displayed only as an after-submission suggestion, with documented false-positive controls.
+
+Define:
+
+- alias uniqueness and conflict behavior;
+- how the matched alias is shown;
+- how a rejected answer can be promoted to a new alias after reveal;
+- audit behavior for alias changes.
 
 ### 5. Design the FSRS integration
 
-Use FSRS 6 but isolate it behind a Repertory interface. Decide:
+Use FSRS 6 but isolate it behind a Repertory-owned interface. Decide:
 
 - whether FSRS objects are normalized into columns, stored as versioned JSON, or both;
+- persisted FSRS state;
 - how library upgrades and scheduler-version migrations are handled;
 - what immutable review data is required to rebuild state;
 - desired retention and learning/relearning defaults for the MVP;
-- UTC/time handling;
+- UTC-aware timestamps;
 - previewing next intervals;
-- undo/rollback;
-- why automatic parameter optimization is deferred and what data threshold could enable it later.
+- accidental-rating undo and rollback;
+- deterministic tests using fixed timestamps;
+- why automatic parameter optimization is deferred;
+- what amount and quality of review history would justify optimization later.
 
-Create tests using fixed timestamps and known transitions. Do not invent performance claims.
+Do not invent performance or learning claims.
 
 ### 6. Design the independent excerpt-challenge policy
 
-Create an explainable first policy using configurable duration bands and challenge levels. Define inputs, transitions, caps, lapse behavior, replay/hint effects, and how the policy avoids oscillation.
+Create an explainable first policy using configurable duration bands and challenge levels. Define:
 
-Separate:
-
-- challenge-level selection;
+- initial challenge level;
+- minimum and maximum durations;
+- Again, Hard, Good, and Easy transitions;
+- lapse behavior;
+- replay and hint recording;
+- evidence required before increasing difficulty;
+- caps and anti-oscillation behavior;
+- short-recording fallback;
 - random duration selection inside a band;
 - random permitted-region selection;
 - recent-region avoidance;
-- short-recording fallback;
 - seeded randomness for tests.
 
-Show a transition table and worked examples. FSRS due intervals must not be changed merely to alter clip duration.
+Include:
 
-### 7. Design audio import, storage, and playback
+- a complete transition table;
+- worked success and lapse examples;
+- tests proving that FSRS scheduling and challenge difficulty remain independent.
+
+FSRS due intervals must not be changed merely to alter clip duration.
+
+### 7. Design audio import and storage
 
 Produce a threat-aware and failure-safe design for:
 
-- upload size limits at ingress and Django;
+- upload size limits at ingress and Django layers;
 - temporary staging;
-- extension, MIME, signature, decodability, and duration checks;
-- checksum and deduplication policy;
+- safe filename handling;
+- extension, MIME, file-signature, decodability, and duration validation;
+- checksums;
+- duplicate-file behavior;
 - tag extraction as untrusted suggestions;
-- opaque storage names;
-- atomic database/file lifecycle and orphan cleanup;
-- permitted/unusable regions and silence/applause handling;
-- authenticated range requests;
-- variable-bitrate MP3/browser seeking tests;
-- exact stop timing in TypeScript;
-- FFmpeg fallback criteria, command safety, resource/time limits, and caching decision;
-- preventing filenames/tags/artwork from leaking before reveal;
-- missing/corrupt media recovery;
-- synthetic test-audio generation.
+- opaque persistent filenames;
+- atomic database and file lifecycle;
+- interrupted-upload cleanup;
+- orphan cleanup;
+- original-file preservation;
+- missing or corrupt media;
+- permitted and excluded regions;
+- silence, applause, announcements, and tuning;
+- synthetic audio generation for tests.
 
-Define a small device/browser compatibility experiment before committing to the final playback implementation.
+Personal recordings and derived clips must never enter Git, CI artifacts, screenshots, logs, or issue text.
 
-### 8. Design the web/PWA experience
+### 8. Design playback architecture
 
-Specify routes/pages and the review-page client state. Cover:
+Define a browser compatibility experiment before committing to the final playback implementation.
 
-- desktop and Android mobile layout;
-- keyboard/focus behavior;
-- play/replay/submit/rate safety;
-- accessibility;
-- network interruption and application wake state;
+Test authenticated HTTP range delivery and seeking for supported MP3 files on:
+
+- desktop Chromium;
+- Android Chromium;
+- any additional explicitly supported browser.
+
+Resolve:
+
+- variable-bitrate MP3 behavior;
+- accurate randomized seeking;
+- exact client-side stop timing;
+- navigation and playback cleanup;
+- preventing identifying metadata from appearing before reveal;
+- authorization of range requests;
+- expired-review access;
+- whether a bounded FFmpeg excerpt endpoint is required.
+
+If proposing an FFmpeg fallback, define:
+
+- safe argument construction;
+- CPU, memory, time, and output limits;
+- concurrency limits;
+- temporary-file cleanup;
+- caching or no-caching decision;
+- failure and timeout behavior.
+
+Do not pre-generate a permanent library of random clips.
+
+### 9. Design the web and PWA experience
+
+Specify all planned routes and pages, including:
+
+- login and account settings;
+- library;
+- work, movement, and recording management;
+- audio import;
+- due queue;
+- review;
+- answer reveal;
+- progress;
+- export and import;
+- application settings.
+
+Define the browser review state machine and cover:
+
+- Android-first responsive layout;
+- desktop behavior;
+- keyboard and Enter-key safety;
+- focus management;
+- play and replay controls;
+- audio stopping on navigation;
+- network interruption;
+- application wake state;
+- accessibility and semantic controls;
+- reduced motion;
 - manifest and installability;
-- service-worker scope and cache allow/deny list;
 - explicit offline behavior;
-- preventing private audio/authenticated HTML from being cached indiscriminately.
+- service-worker scope;
+- exact cache allow and deny lists.
 
-Decide whether ordinary pages need HTMX or whether normal Django forms plus the focused TypeScript review client are simpler. Do not add a frontend framework without evidence.
+The PWA must use the dedicated origin `https://repertory.metrekare.cloud` with root scope. Do not design around a path-prefix deployment. Do not cache authenticated HTML, private audio, answers, or review state indiscriminately.
 
-### 9. Define security and privacy controls
+Evaluate whether ordinary Django forms plus the focused TypeScript client are sufficient. Add HTMX or another browser library only when a concrete interaction justifies it.
+
+### 10. Define security and privacy controls
 
 Threat-model at least:
 
-- malicious/oversized media uploads;
-- path traversal and unsafe filenames;
+- malicious or oversized media uploads;
+- unsafe filenames and path traversal;
 - metadata leakage;
-- unauthorized media range access;
-- CSRF/session theft;
+- unauthorized media-range access;
+- CSRF;
+- session theft;
 - login brute force;
-- XSS through user-entered metadata/aliases;
-- duplicate/replayed review requests;
-- public repository secret/media leakage;
-- raw backend exposure;
-- service-worker/browser caching;
+- XSS through titles, notes, and aliases;
+- duplicate or replayed review submissions;
 - FFmpeg resource exhaustion;
-- backup/export leakage;
-- wake-controller/Docker-socket compromise in the later scale-to-zero phase.
+- service-worker caching;
+- backup and export leakage;
+- public repository leakage;
+- raw backend exposure;
+- spoofed proxy headers;
+- missing-media behavior;
+- later wake-controller and Docker-socket compromise.
 
-Define secure defaults, logging redaction, limits, and tests. Keep registration closed.
+Define secure defaults, limits, logging redaction, secrets handling, and required tests. Registration remains closed. Network location alone must not replace native authentication.
 
-### 10. Define development, CI, and test architecture
+The security model must assume:
+
+```text
+LAN or approved WireGuard client
+  -> private split DNS for repertory.metrekare.cloud
+  -> private Traefik
+  -> guarded Repertory backend
+```
+
+The browser-facing origin must remain exactly `https://repertory.metrekare.cloud`. Public Internet, unknown WireGuard peers, undefined hosts, and direct raw-backend paths must fail closed.
+
+### 11. Define development, CI, and test architecture
 
 Specify the exact proposed project tree and module boundaries without creating them. Include:
 
-- settings layout;
-- domain/service modules;
+- Django settings layout;
+- domain and service modules;
 - TypeScript structure;
-- dependency and lock strategy;
-- formatting/lint/type tools;
-- unit, model, integration, browser, security, migration, export/restore, and performance tests;
+- static-asset pipeline;
+- dependency pinning;
+- `uv.lock`;
+- formatting;
+- linting;
+- type checking;
+- unit tests;
+- model and constraint tests;
+- integration tests;
+- browser tests;
+- security tests;
+- migration tests;
+- export and import tests;
+- isolated restore tests;
+- performance and startup measurements;
 - generated audio fixtures;
-- GitHub Actions jobs, caching, artifact policy, and least permissions;
-- dependency review/SBOM/image scanning decisions;
+- GitHub Actions jobs;
+- least-required Actions permissions;
+- artifact retention rules;
+- dependency review, SBOM, and image-scanning decisions;
 - local commands that a clean checkout will run.
 
 Every implementation milestone must name the tests that prove it.
 
-### 11. Define production compatibility without deploying
+### 12. Define production application compatibility without deploying
 
-Document the application contract needed by the later HomelabTrack deployment:
+Document the application-side contract required by the later HomelabTrack deployment. Do not change HomelabTrack or any live system during this task.
 
-- container ports and non-root runtime;
-- health/live and health/ready semantics;
-- persistent paths for database, media, and temporary work;
-- environment variables and secret boundaries;
-- proxy headers, allowed hosts, CSRF origins, secure cookies, upload limits, and logging;
-- graceful shutdown and migration behavior;
-- backup/quiescence/export/restore commands;
-- resource limits and measurable cold-start behavior;
-- no public route assumption.
+Cover:
 
-For optional scale-to-zero, compare always-running versus Sablier-style on-demand start. Define the minimum evidence needed to Adopt, Defer, or Reject it. Include least-privilege Docker socket proxy, source-restricted Sablier API, Traefik plugin/static-config risk, health-gated wake, active-session keepalive, critical-operation inhibition, concurrent-wake tests, and rollback to always-running mode.
+- the canonical application URL `https://repertory.metrekare.cloud`;
+- Django `ALLOWED_HOSTS` containing `repertory.metrekare.cloud`;
+- Django `CSRF_TRUSTED_ORIGINS` containing `https://repertory.metrekare.cloud`;
+- container port;
+- non-root runtime;
+- health/liveness endpoint;
+- readiness endpoint;
+- persistent SQLite path;
+- persistent media path;
+- temporary-work path;
+- environment variables;
+- secret boundaries;
+- secure cookies;
+- proxy-header trust;
+- upload limits;
+- logging;
+- graceful shutdown;
+- database migrations;
+- backup and quiescence commands;
+- export and restore commands;
+- resource limits;
+- measurable cold-start behavior;
+- no-public-route assumption.
 
-Do not edit HomelabTrack or any live system during this task.
+The intended production path is:
 
-### 12. Produce an ordered implementation backlog
+```text
+LAN or approved WireGuard client
+  -> private split DNS for repertory.metrekare.cloud
+  -> existing private Traefik ingress
+  -> guarded Repertory backend
+```
+
+For optional scale-to-zero, compare always-running deployment with a Sablier-style on-demand start. Define the minimum evidence needed to choose:
+
+- **Adopt**;
+- **Defer**;
+- **Reject**.
+
+When describing the optional design, include:
+
+- private Traefik wake middleware;
+- pinned wake-controller version;
+- least-privilege Docker socket proxy;
+- controller restricted to the named Repertory workload;
+- source-restricted controller API;
+- health-gated wake;
+- bounded startup timeout;
+- private waiting or blocking-page behavior;
+- active-review keepalive;
+- inhibition during upload, migration, backup, restore, export, and maintenance;
+- simultaneous first requests;
+- stale browser tabs;
+- failed startup;
+- readiness timeout;
+- controller outage;
+- Docker API denial;
+- rollback to always-running mode.
+
+Treat any Traefik plugin or static-configuration change as a separate shared-ingress risk. Do not deploy it during this planning task.
+
+### 13. Produce an ordered implementation backlog
 
 Break the work into small, independently reviewable issues or milestones. For each item include:
 
-- title and objective;
+- title;
+- objective;
 - dependencies;
-- in-scope/out-of-scope;
-- exact files/modules expected to change;
-- migration/data implications;
-- tests;
+- in scope;
+- out of scope;
+- exact files or modules expected to change;
+- migration and data implications;
+- required tests;
 - acceptance criteria;
-- rollback/rework boundary;
-- risks and unresolved inputs.
+- rollback or rework boundary;
+- risks;
+- unresolved operator input.
 
-The first issue after planning should create only the project skeleton and quality gates, not the entire MVP.
+The first implementation item after planning must create only the project skeleton and quality gates. It must not attempt the complete MVP.
 
 ## Required repository outputs
 
-Create or update only planning/documentation files. At minimum produce:
+Create or update planning and documentation files only. At minimum produce:
 
 - `docs/implementation-plan.md`
 - `docs/data-model.md`
@@ -273,7 +493,7 @@ Create or update only planning/documentation files. At minimum produce:
 - `docs/security-model.md`
 - `docs/deployment-contract.md`
 - `docs/implementation-backlog.md`
-- ADRs under `docs/adr/` for decisions that materially refine or change the accepted starting architecture
+- relevant ADRs under `docs/adr/`
 
 Update `README.md`, `docs/product-brief.md`, `docs/architecture-decisions.md`, and `docs/roadmap.md` only where reconciliation requires it. Preserve user intent and explain every changed decision.
 
@@ -281,26 +501,29 @@ Use diagrams where they add clarity. Keep commands illustrative and non-secret. 
 
 ## Quality bar
 
-The plan must be detailed enough that a later Codex implementation task can take one backlog item at a time without inventing architecture. It must distinguish verified facts, chosen decisions, experiments still required, and future/non-MVP ideas.
+The plan must be detailed enough that a later Codex implementation task can take one backlog item at a time without inventing architecture. It must distinguish verified facts, selected decisions, experiments still required, and future or non-MVP ideas.
 
 Before finishing:
 
 1. Check every requirement and edge case from the product brief against the requirement matrix.
 2. Check that FSRS and excerpt challenge remain separate.
-3. Check that no pre-answer response leaks the answer.
-4. Check that every persistent object has lifecycle, constraints, backup, and deletion behavior.
+3. Check that no pre-answer response leaks identifying information or the answer.
+4. Check that every persistent object has lifecycle, constraints, archive/deletion behavior, backup ownership, and restore expectations.
 5. Check that every milestone has tests and acceptance criteria.
-6. Check that no public exposure or live deployment was authorized.
-7. Run documentation/link/lint checks that already exist; do not create feature code merely to satisfy a missing tool.
+6. Check that every browser-facing URL is exactly `https://repertory.metrekare.cloud`.
+7. Check that no path-prefix URL, alternative subdomain, public exposure, or live deployment was introduced.
+8. Run documentation, link, and lint checks that already exist; do not create feature code merely to satisfy a missing tool.
+9. Do not claim unrun tests or experiments passed.
 
 ## Git workflow
 
 - Work on a focused branch such as `codex/implementation-plan`.
-- Commit the documentation with a clear message.
+- Commit only the planning documentation with a clear message.
 - Push the branch.
-- Open a pull request against `main` summarizing decisions, experiments, unresolved questions, and generated planning files.
-- Do not merge the PR and do not begin implementation.
+- Open a pull request against `main` summarizing selected decisions, experiments still required, unresolved questions, and generated planning files.
+- Do not merge the pull request.
+- Do not begin implementation.
 
-Return the pull-request URL and a concise list of the most important decisions or unresolved blockers.
+Return the pull-request URL and a concise list of the most important decisions, experiments, or unresolved blockers.
 
 ---
