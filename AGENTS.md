@@ -55,10 +55,11 @@ Do not replace this with a JavaScript full-stack framework, a separate API servi
 
 The application repository is public, but the intended deployment is private.
 
-- Never commit `.env` files, Django secrets, credentials, private hostnames beyond the approved canonical hostname, user databases, review exports, backup configuration, or operational logs.
+- Never commit `.env` files, Django secrets, credentials, private hostnames beyond the approved canonical application URL, user databases, review exports, backup configuration, or operational logs.
 - Keep registration closed. The first deployment is single-user but data should remain user-scoped where doing so does not add disproportionate complexity.
 - Do not add a public DNS/proxy route or assume public exposure is acceptable.
-- Production access is intended through `repertory.metrekare.cloud` on LAN and approved WireGuard paths through the private ingress.
+- The only approved browser-facing production URL is `https://repertory.metrekare.cloud`; do not substitute another subdomain or a path-prefix deployment.
+- Production access is intended through `https://repertory.metrekare.cloud` on LAN and approved WireGuard paths through the private ingress.
 - Raw backend ports must not become a substitute access path.
 
 ## Development workflow
