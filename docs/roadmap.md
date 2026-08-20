@@ -2,6 +2,8 @@
 
 This roadmap keeps application development, production deployment, and optional scale-to-zero as separate acceptance boundaries.
 
+The only approved browser-facing application URL is `https://repertory.metrekare.cloud`.
+
 ## Phase 0 — implementation planning
 
 Deliverables:
@@ -142,7 +144,7 @@ Deliverables:
 - governed persistent storage for database and audio;
 - pinned Compose deployment on the approved target;
 - raw-origin firewall restriction to the private ingress source;
-- explicit private Traefik router for `repertory.metrekare.cloud`;
+- explicit private Traefik router for host `repertory.metrekare.cloud`, serving only `https://repertory.metrekare.cloud`;
 - exact private split-DNS record and no AAAA unless reviewed;
 - no public VPS application route;
 - owner bootstrap outside Git/logs;
@@ -153,7 +155,7 @@ Deliverables:
 
 Acceptance:
 
-- the app is privately usable at the canonical hostname;
+- the app is privately usable only at `https://repertory.metrekare.cloud`;
 - raw backend and public paths remain unavailable;
 - persistence, backup, restore, restart/recreate, and rollback are proven.
 
