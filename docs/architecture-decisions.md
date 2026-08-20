@@ -7,7 +7,7 @@ This document records the decisions to use when producing the first implementati
 | Area | Initial decision |
 | --- | --- |
 | Product shape | Private, web-first, installable PWA |
-| Canonical hostname | `repertory.metrekare.cloud` |
+| Canonical application URL | `https://repertory.metrekare.cloud` |
 | Exposure | LAN and approved WireGuard only; no public application route |
 | Backend | Python 3.13 with Django 5.2 LTS |
 | Frontend | Django templates plus a small strict-TypeScript review/audio client |
@@ -20,15 +20,15 @@ This document records the decisions to use when producing the first implementati
 | Production ingress | Existing private Traefik file-provider architecture |
 | Sleep mode | Design-compatible from the start; enable only after warm deployment is measured and accepted |
 
-## 1. Use a subdomain, not a path prefix
+## 1. Use the approved subdomain, not a path prefix
 
-Use:
+The only approved browser-facing application URL is:
 
 ```text
 https://repertory.metrekare.cloud
 ```
 
-Do not initially mount the application below `https://metrekare.cloud/repertory/`.
+Do not substitute another subdomain or mount the application under a path prefix.
 
 A dedicated hostname avoids permanent complexity around Django script prefixes, static/media URLs, CSRF origins, cookie paths, PWA manifest scope, service-worker scope, proxy rewrites, and wake-on-demand middleware. The hostname can still remain entirely private through split DNS.
 
@@ -154,6 +154,8 @@ LAN or approved WireGuard client
   -> private Traefik on UbuntuServer / private VIP
   -> guarded Repertory backend on DockerCoreVM
 ```
+
+The browser-facing origin at the end of that private route must remain exactly `https://repertory.metrekare.cloud`.
 
 Deployment rules:
 
