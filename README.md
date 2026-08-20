@@ -13,7 +13,7 @@ Repertory will play a fresh, randomly selected excerpt from a user-provided audi
 3. It plays a random excerpt without revealing the filename or metadata.
 4. The learner types the answer rather than choosing from multiple-choice options.
 5. Repertory reveals the canonical answer and the learner grades the review: **Again**, **Hard**, **Good**, or **Easy**.
-6. A spaced-repetition scheduler determines the next review date, while a separate difficulty model adjusts future excerpt length.
+6. FSRS determines the next review date, while a separate difficulty model adjusts future excerpt length and region difficulty.
 
 ## Key design principle
 
@@ -24,39 +24,63 @@ The scheduling model and the audio-difficulty model are related but distinct:
 - **Scheduling** answers: “When should this item be reviewed again?”
 - **Excerpt difficulty** answers: “How much audio should the learner hear next time?”
 
+## Selected initial architecture
+
+- **Backend:** Python 3.13 and Django 5.2 LTS
+- **Browser UI:** Django templates plus a small strict-TypeScript review/audio client
+- **Scheduler:** FSRS 6 through the maintained Python implementation
+- **Audio:** authenticated range playback and browser seeking first; Mutagen and FFmpeg/ffprobe where needed
+- **Database:** SQLite in WAL mode for the initial single-user deployment
+- **Dependency management:** `uv`
+- **Runtime:** one Docker/Compose application workload; no Redis or Celery in the MVP
+- **Client:** responsive, online-first, installable PWA for desktop and Android
+
+The intended private production hostname is:
+
+```text
+https://repertory.metrekare.cloud
+```
+
+It is planned for private split DNS and the existing private Traefik ingress, reachable only from the home LAN and approved WireGuard clients. Public application exposure is not part of the initial scope.
+
+The application will be designed so a later guarded scale-to-zero layer can stop it after inactivity and wake it on the first private request. The normal always-running deployment must be developed, measured, and accepted first.
+
 ## Initial MVP goals
 
 - Mobile-first installable web app/PWA.
-- User-supplied MP3 and other browser-compatible audio files.
-- Library of works, movements, recordings, aliases, and recognition targets.
-- Random, bounded excerpts with adaptive duration.
-- Typed free-recall answers with normalization and explicit self-grading.
-- FSRS-style spaced repetition behind a replaceable scheduler interface.
-- Review history, basic progress statistics, and reliable backup/export.
-- Privacy-conscious, self-hostable operation without distributing copyrighted recordings.
+- User-supplied MP3 files, with other formats added only after compatibility testing.
+- Library of composers, works/collections, movements, recordings, aliases, and recognition targets.
+- Random bounded excerpts with adaptive duration and recent-region avoidance.
+- Typed free-recall answers with deterministic normalization and explicit self-grading.
+- FSRS 6 behind a replaceable application-owned scheduler interface.
+- Review history, basic progress statistics, versioned export, and reliable backup/restore.
+- Privacy-conscious self-hosting without distributing copyrighted recordings.
 
 ## Terminology
 
 | Term | Meaning in Repertory |
 | --- | --- |
-| **Work** | A composition such as *The Four Seasons* or *Symphony No. 5*. |
+| **Work** | A composition such as *The Four Seasons* or *Symphony No. 5*. A work may belong to a parent collection. |
 | **Movement** | A major section inside a work, such as “I. Allegro.” |
-| **Recording** | A particular performance/audio file supplied by the user. |
-| **Recognition target** | The answer expected during review: a work, movement, or another configured level. |
+| **Recording** | A particular performance independent of its stored audio file. |
+| **Audio asset** | An original file supplied by the user and stored outside Git. |
+| **Recognition target** | The work or movement expected as the typed answer. |
 | **Excerpt** | The temporary segment played during one review. It is not a permanent card. |
 
 ## Project documents
 
-- [`docs/product-brief.md`](docs/product-brief.md) — product goals, requirements, and constraints
-- [`docs/roadmap.md`](docs/roadmap.md) — proposed delivery phases
-- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — decisions that the planning phase must resolve
-- [`docs/CODEX_PLANNING_PROMPT.md`](docs/CODEX_PLANNING_PROMPT.md) — planning prompt for Codex
+- [`docs/product-brief.md`](docs/product-brief.md) — product goals, requirements, edge cases, and non-goals
+- [`docs/architecture-decisions.md`](docs/architecture-decisions.md) — selected initial stack, private deployment contract, and optional sleep design
+- [`docs/roadmap.md`](docs/roadmap.md) — staged delivery from planning through private deployment
+- [`docs/CODEX_PLANNING_PROMPT.md`](docs/CODEX_PLANNING_PROMPT.md) — implementation-planning prompt for Codex
 - [`AGENTS.md`](AGENTS.md) — repository instructions for coding agents
 
-## Media and copyright
+## Media and private-data boundary
 
-Repertory is intended to help users study audio they are legally allowed to use. Do not commit personal music files or copyrighted commercial recordings to this repository. Tests should use generated tones, original fixtures, or appropriately licensed/public-domain audio.
+Repertory is intended to help users study audio they are legally allowed to use. Do not commit personal music files, copyrighted commercial recordings, album artwork extracted from user media, databases, review exports, credentials, environment files, backups, or private operational logs to this public repository.
 
-## Status
+Tests should generate synthetic audio or use clearly licensed fixtures whose provenance is documented.
 
-The next step is an architecture and implementation plan. Code should not be scaffolded until the planning phase records the major product and technical decisions.
+## Status and next step
+
+The next step is a complete architecture and implementation plan. Feature code should not be scaffolded until the planning phase resolves the explicit data model, review transaction, answer matching, audio compatibility experiment, test strategy, security model, and ordered implementation backlog.
