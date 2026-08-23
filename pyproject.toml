@@ -9,6 +9,7 @@ dependencies = [
   "fsrs>=6,<7",
   "gunicorn>=23,<24",
   "mutagen>=1.47,<2",
+  "whitenoise>=6.12,<7",
 ]
 
 [dependency-groups]

@@ -1,5 +1,9 @@
 # Codex planning prompt
 
+> Superseded on 2026-08-23. The original private-homelab deployment assumptions below are retained only
+> as the input that produced the initial plan; the current target is the Render deployment recorded in
+> [`architecture-decisions.md`](architecture-decisions.md). Do not execute this prompt as current policy.
+
 Use the prompt below from the Repertory repository root.
 
 ---

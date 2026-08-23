@@ -2,7 +2,7 @@
 
 **Spaced repetition for recognizing classical music by ear.**
 
-Repertory is a private, single-owner Django application. Its first working MVP lets you:
+Repertory is a single-owner Django application. Its first working MVP lets you:
 
 - import an MP3 while preserving the original file;
 - identify its composer and work;
@@ -69,6 +69,30 @@ uv run python manage.py makemigrations --check --dry-run --settings=repertory.se
 Tests generate synthetic CBR/VBR tones when FFmpeg is available and otherwise use synthetic byte streams
 or mocked inspection. No personal or commercial audio is stored in the repository.
 
+## Deploy on Render
+
+[`render.yaml`](render.yaml) defines the first hosted deployment: a Docker web service in Frankfurt with
+one worker and a 5 GB persistent disk mounted at `/var/lib/repertory`. The disk is required because both
+SQLite and uploaded audio would be lost on Render's otherwise ephemeral filesystem. Render persistent
+disks require a paid web-service plan.
+
+1. In Render, create a Blueprint from this repository and select branch `agent/basic-mvp` while the MVP
+   pull request remains open.
+2. Confirm the workspace has payment information for the Starter service and persistent disk.
+3. Review and apply the Blueprint. Render generates `DJANGO_SECRET_KEY`; never replace it with a value
+   committed to Git.
+4. After the first healthy deploy, open the Render Shell and run
+   `.venv/bin/python manage.py createsuperuser` to create the sole owner.
+5. Open the service's `https://…onrender.com` URL and sign in. Registration is absent.
+
+The application automatically trusts the exact `RENDER_EXTERNAL_HOSTNAME`. If you later add a custom
+domain, set `REPERTORY_ALLOWED_HOSTS` to that hostname before switching DNS. Comma-separated exact hosts
+are supported; wildcards are intentionally not.
+
+Render disk snapshots are useful recovery points, but they do not replace a tested application-level
+SQLite/media backup. Export/restore remains follow-up MVP work, so do not treat this first deployment as
+the only copy of valuable learning data or recordings.
+
 ## Current boundaries
 
 This first slice is intentionally smaller than the complete product brief. It supports MP3 only and one
@@ -76,9 +100,8 @@ owner. Marking is based on start/end timecodes assisted by the browser audio pla
 versioned export/restore, progress charts, PWA installation, automated silence detection, and the formal
 Android/desktop seeking experiment remain follow-up work.
 
-No deployment, DNS, Traefik, firewall, or homelab changes are included. The sole approved future
-browser-facing production URL remains `https://repertory.metrekare.cloud` on private LAN/WireGuard
-paths.
+The first deployment target is Render, not the homelab. Its web endpoint is reachable from the public
+internet, but library pages, study state, and audio remain protected by Django login.
 
 ## Project documents
 

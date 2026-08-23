@@ -18,9 +18,11 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
 COPY --from=frontend /app/static/repertory ./static/repertory
-RUN DJANGO_SETTINGS_MODULE=repertory.settings.test .venv/bin/python manage.py collectstatic --noinput \
+RUN DJANGO_SECRET_KEY=build-only-not-used-at-runtime \
+    REPERTORY_ALLOWED_HOSTS=build.invalid \
+    .venv/bin/python manage.py collectstatic --noinput \
     && mkdir -p /var/lib/repertory/db /var/lib/repertory/media /var/tmp/repertory \
     && chown -R 10001:10001 /var/lib/repertory /var/tmp/repertory
 USER 10001:10001
 EXPOSE 8000
-CMD [".venv/bin/gunicorn", "--bind=0.0.0.0:8000", "--workers=1", "--access-logfile=-", "repertory.wsgi:application"]
+CMD ["./ops/start.sh"]

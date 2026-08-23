@@ -8,13 +8,14 @@ typed answer reveal, FSRS rating, beginning-first frontier expansion, and protec
 automated acceptance evidence is documented in [`mvp.md`](mvp.md).
 
 This does not mark Phases 1–6 complete: the image builds and loads production settings as a non-root
-user, but persistent-container startup, real-browser audio experiments, rating undo, export/restore, PWA
-behavior, broader management UI, and sustained personal-use evidence remain open. Phases 7–8 are
-unchanged and still require separate authorization.
+user, but real-browser audio experiments, rating undo, export/restore, PWA behavior, broader management
+UI, and sustained personal-use evidence remain open. The first hosted test now targets Render rather
+than the homelab.
 
 This roadmap keeps application development, production deployment, and optional scale-to-zero as separate acceptance boundaries.
 
-The only approved browser-facing application URL is `https://repertory.metrekare.cloud`.
+The first browser-facing URL is the exact Render-provided HTTPS hostname. A custom domain is optional
+and must be configured explicitly in both Render and Django.
 
 ## Phase 0 — implementation planning
 
@@ -145,56 +146,31 @@ Deliverables:
 
 Gate: application development is accepted before production infrastructure is changed.
 
-## Phase 7 — private homelab deployment
-
-Owned by HomelabTrack, not by an application-only task.
+## Phase 7 — Render deployment
 
 Deliverables:
 
-- fresh Proxmox/DockerCore capacity and storage preflight;
-- recovery point before mutation;
-- governed persistent storage for database and audio;
-- pinned Compose deployment on the approved target;
-- raw-origin firewall restriction to the private ingress source;
-- explicit private Traefik router for host `repertory.metrekare.cloud`, serving only `https://repertory.metrekare.cloud`;
-- exact private split-DNS record and no AAAA unless reviewed;
-- no public VPS application route;
-- owner bootstrap outside Git/logs;
-- LAN and approved WireGuard acceptance;
-- public fail-closed verification;
-- backup, encrypted off-VM copy, missed-run visibility, and isolated restore;
-- monitoring, upgrade, rollback, and repository synchronization.
+- reviewed commit with passing CI and a repository-owned Render Blueprint;
+- one Starter Docker web service in Frankfurt with one Gunicorn worker;
+- a persistent disk containing SQLite plus original and sanitized audio;
+- runtime migrations because the disk is unavailable to Render pre-deploy commands;
+- generated Django secret and owner bootstrap outside Git/logs;
+- exact Render hostname validation, HTTPS-only cookies, and closed registration;
+- desktop and Android login, upload, study, logout, and session-expiry acceptance;
+- anonymous library/media denial and authenticated range-playback acceptance;
+- restart/redeploy persistence, application-aware backup, isolated restore, and rollback evidence.
 
 Acceptance:
 
-- the app is privately usable only at `https://repertory.metrekare.cloud`;
-- raw backend and public paths remain unavailable;
+- the app is usable only after owner login at its exact Render HTTPS origin;
+- anonymous library, review, and media paths remain unavailable;
 - persistence, backup, restore, restart/recreate, and rollback are proven.
 
-## Phase 8 — optional scale-to-zero evaluation
+## Phase 8 — optional platform sleep evaluation
 
-First measure the normal deployment. Record idle RSS, cold-start time, active-study behavior, backup interaction, and the resource benefit that stopping the app would provide.
-
-Decision outcome must be one of:
-
-- **Adopt** guarded scale-to-zero;
-- **Defer** until a named condition;
-- **Reject** because the operational/security cost exceeds the resource benefit.
-
-If adopted, deliver:
-
-- pinned wake-controller and Traefik middleware versions;
-- least-privilege Docker socket proxy;
-- source-restricted controller API;
-- health-gated wake behavior;
-- waiting/blocking cold-start UX;
-- active-session keepalive or equivalent protection;
-- scale-down inhibition for uploads, migrations, backup, restore, and maintenance;
-- bounded idle timeout;
-- concurrent wake, stale tab, startup failure, timeout, and mid-session tests;
-- rollback to an always-running app.
-
-Scale-to-zero is complete only after it survives ordinary use and a controlled host/container restart without exposing another Docker workload or weakening the private ingress.
+Do not add an application-owned wake controller or Docker lifecycle authority. If a future Render plan
+sleeps services, acceptance requires measured cold-start, stale-tab, upload, backup, and active-review
+behavior plus a rollback to the always-running Starter configuration.
 
 ## Future candidates after the first release
 

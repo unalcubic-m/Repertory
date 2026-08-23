@@ -8,7 +8,7 @@ The product is not a normal flashcard player with one saved clip per card. It is
 
 ## Primary user and operating model
 
-The initial product is for one owner using a responsive web application from desktop and Android. It is self-hosted, private to the home LAN and approved WireGuard clients, and installable as a PWA. The data model should not make future multi-user support impossible, but multi-user administration is not an MVP objective.
+The initial product is for one owner using a responsive web application from desktop and Android. It is hosted as a public-network Render web service, but registration is closed and all library, review, and media behavior requires the owner's Django session. The data model should not make future multi-user support impossible, but multi-user administration is not an MVP objective.
 
 ## Core learning loop
 
@@ -25,13 +25,13 @@ The initial product is for one owner using a responsive web application from des
 
 ## MVP capabilities
 
-### 1. Private account and setup
+### 1. Owner account and setup
 
 - Closed registration.
 - One owner account created through an explicit bootstrap process.
 - Normal Django session authentication and CSRF protection.
 - Logout, password change, and safe session expiry.
-- No dependency on public identity providers for the private MVP.
+- No dependency on a separate identity provider for the MVP.
 
 ### 2. Repertoire library
 
@@ -189,4 +189,4 @@ Avoid a generic schema so abstract that ordinary Django constraints become impos
 
 ## MVP acceptance outcome
 
-The MVP is useful when the owner can privately import at least twenty works or movements, complete a phone-based study session using changing excerpts and typed answers, see FSRS-driven due dates and adaptive duration changes, restart/recreate the application without data loss, export and restore learning data, and verify that no media or application path is exposed publicly.
+The MVP is useful when the owner can import at least twenty works or movements, complete a phone-based study session using changing excerpts and typed answers, see FSRS-driven due dates and adaptive duration changes, restart/recreate the application without data loss, export and restore learning data, and verify that anonymous users cannot reach library, review, or media content.

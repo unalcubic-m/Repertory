@@ -6,9 +6,9 @@ This document records the decisions to use when producing the first implementati
 
 | Area | Initial decision |
 | --- | --- |
-| Product shape | Private, web-first, installable PWA |
-| Canonical application URL | `https://repertory.metrekare.cloud` |
-| Exposure | LAN and approved WireGuard only; no public application route |
+| Product shape | Single-owner, web-first, installable PWA |
+| Canonical application URL | Exact Render-provided HTTPS hostname; optional explicit custom domain later |
+| Exposure | Public-network web endpoint with closed registration and authenticated application/media access |
 | Backend | Python 3.13 with Django 5.2 LTS |
 | Frontend | Django templates plus a small strict-TypeScript review/audio client |
 | API style | Same-origin application endpoints; no separate public API service |
@@ -16,21 +16,19 @@ This document records the decisions to use when producing the first implementati
 | Initial database | SQLite with WAL mode and explicit backup/restore procedures |
 | Media | Original user files on persistent storage; browser range playback first; FFmpeg fallback only if required |
 | Runtime | One application container, no Redis/Celery/background worker in the MVP |
-| Packaging | `uv`, Docker, and Docker Compose |
-| Production ingress | Existing private Traefik file-provider architecture |
-| Sleep mode | Design-compatible from the start; enable only after warm deployment is measured and accepted |
+| Packaging | `uv`, Docker, and a Render Blueprint |
+| Production ingress | Render-managed HTTPS edge and Docker web service |
+| Sleep mode | No application-owned wake controller; follow the selected Render plan's lifecycle |
 
-## 1. Use the approved subdomain, not a path prefix
+## 1. Use a dedicated Render origin, not a path prefix
 
-The only approved browser-facing application URL is:
+The initial browser-facing URL is the exact `https://…onrender.com` hostname assigned to the web
+service. Django reads it from Render's `RENDER_EXTERNAL_HOSTNAME`; the repository does not guess or
+hard-code the generated name. An optional custom domain can be added later only after its exact hostname
+is added to `REPERTORY_ALLOWED_HOSTS`.
 
-```text
-https://repertory.metrekare.cloud
-```
-
-Do not substitute another subdomain or mount the application under a path prefix.
-
-A dedicated hostname avoids permanent complexity around Django script prefixes, static/media URLs, CSRF origins, cookie paths, PWA manifest scope, service-worker scope, proxy rewrites, and wake-on-demand middleware. The hostname can still remain entirely private through split DNS.
+A dedicated origin avoids Django script-prefix, static/media URL, CSRF-origin, cookie-path, PWA scope,
+and proxy-rewrite complexity. Wildcard hosts and wildcard CSRF origins are not accepted.
 
 ## 2. Use Django as a small monolith
 
@@ -131,7 +129,7 @@ If variable-bitrate MP3 behavior or a supported browser makes seeking unreliable
 
 ## 8. Use native Django authentication
 
-The private MVP uses Django authentication with:
+The single-owner MVP uses Django authentication with:
 
 - closed registration;
 - one explicitly bootstrapped owner account;
@@ -140,72 +138,41 @@ The private MVP uses Django authentication with:
 - login throttling or an ingress/application equivalent selected during implementation planning;
 - no anonymous media endpoints.
 
-Do not depend on Authelia for the initial private route. Native application authentication remains useful inside a private network and avoids coupling the development environment to homelab identity infrastructure. Public Authelia exposure is not an initial goal.
+Do not depend on a separate identity provider for the initial deployment. Because the Render endpoint is
+internet reachable, use a strong unique owner password, keep registration absent, and preserve
+authenticated media endpoints, HTTPS-only cookies, CSRF protection, and exact host validation.
 
-## 9. Private deployment model
+## 9. Render deployment model
 
-Candidate production placement is DockerCoreVM, subject to a fresh capacity and storage preflight.
-
-Intended request path:
+The first hosted placement is one Render Docker web service in Frankfurt on the Starter plan, declared
+by `render.yaml` and linked to the exact MVP branch. The request path is:
 
 ```text
-LAN or approved WireGuard client
-  -> private split DNS for repertory.metrekare.cloud
-  -> private Traefik on UbuntuServer / private VIP
-  -> guarded Repertory backend on DockerCoreVM
+Browser -> Render-managed HTTPS edge -> one Gunicorn worker -> Django
 ```
 
-The browser-facing origin at the end of that private route must remain exactly `https://repertory.metrekare.cloud`.
+SQLite, original uploads, and sanitized playback files share one 5 GB persistent disk mounted at
+`/var/lib/repertory`. Render's filesystem outside that mount is ephemeral. The disk restricts the
+service to one instance and disables zero-downtime deploys, which is acceptable for a single-user MVP.
+Migrations run in the runtime start command because Render pre-deploy commands cannot access attached
+disks.
 
 Deployment rules:
 
-- Add one exact private DNS record; do not rely on a new private wildcard.
-- Publish no AAAA record unless an independently reviewed IPv6 path exists.
-- Add no public VPS Caddy application handler.
-- Keep the raw backend bound to the intended DockerCoreVM interface and allow only the private ingress source at the host firewall boundary.
-- Use a pinned image/release and repository-driven Compose deployment.
-- Keep secrets and user data out of Git.
-- Require health, persistence, backup, restore, rollback, LAN, WireGuard, and public-fail-closed tests before acceptance.
+- Use the repository Dockerfile and Blueprint; deploy only a reviewed commit whose CI passed.
+- Keep one Gunicorn worker while SQLite is the database.
+- Generate `DJANGO_SECRET_KEY` in Render and keep all secrets and user data out of Git.
+- Use WhiteNoise for immutable static assets; never use it or a public bucket for uploaded audio.
+- Bootstrap one owner through a Render Shell and keep registration closed.
+- Require readiness, login, upload, study, authenticated-range, persistence, restart, and anonymous-denial checks.
+- Treat Render disk snapshots as recovery points, not a substitute for a tested SQLite/media backup.
 
-The homelab repository, not this application repository, owns DNS, Traefik, firewall, storage attachment, backup scheduling, monitoring, and live deployment evidence.
+## 10. Do not add an application wake controller
 
-## 10. Scale-to-zero is feasible but staged
-
-The application is a good candidate for on-demand start because:
-
-- review due dates are calculated when the user opens the app;
-- no reminder daemon is required;
-- SQLite and audio remain on persistent storage while the process is stopped;
-- the first release intentionally avoids permanent background workers.
-
-A suitable later design is Sablier or an equivalent reviewed wake controller:
-
-```text
-private Traefik middleware
-  -> bounded Sablier API on DockerCoreVM
-  -> least-privilege Docker socket proxy
-  -> start Repertory container
-  -> wait for /health/ready
-  -> forward/retry the original request
-```
-
-After an inactivity window, the controller can stop the Repertory container and free its application memory. The first request after sleep either waits until health is ready or receives a private waiting page.
-
-### Required safeguards
-
-- Deploy and validate Repertory in normal always-running mode first.
-- Measure idle memory, cold-start time, and operational value before accepting additional complexity.
-- Treat the Traefik plugin/static-config change as a separate ingress mutation requiring review and restart planning.
-- Never mount the unrestricted Docker socket directly into the wake controller; use a reviewed socket proxy with only the required container inspection/event/start/stop endpoints.
-- Expose the wake-controller API only to the private ingress source.
-- Require an application healthcheck that distinguishes process start from readiness.
-- Use an inactivity period long enough for study sessions and uploads.
-- Send a lightweight same-origin keepalive while an active review session is open, or otherwise prove the workload cannot stop mid-session.
-- Inhibit scale-down during imports, migrations, backups, restores, and other critical operations.
-- Prove that stale browser tabs, duplicate first requests, concurrent wake requests, container-start failure, and health timeout all fail safely.
-- Provide a simple rollback to an always-running container without changing application data.
-
-Scale-to-zero is not an MVP acceptance requirement. The application must be designed so it can be added without rewriting the product.
+The Starter service is deployed normally. Repertory does not install Sablier, a Docker socket proxy, or
+any application-owned scale-to-zero machinery on Render. If a future plan introduces platform sleep,
+measure cold-start and active-review behavior before accepting it; do not build privileged lifecycle
+automation into this app.
 
 ## 11. Testing strategy
 
@@ -225,18 +192,10 @@ The implementation plan should define at least:
 
 ## 12. Deployment and operational separation
 
-Application development proceeds in this repository. Live infrastructure work proceeds only through a HomelabTrack issue and the established approval gates.
-
-Development completion does not authorize:
-
-- creating DNS records;
-- adding Traefik routers or plugins;
-- changing firewalls;
-- creating mounts/volumes on live hosts;
-- pulling or starting production images;
-- creating production credentials;
-- enabling scale-to-zero;
-- running backups/restores against production paths.
+Application code and the credential-free Render Blueprint live in this repository. Secrets, owner
+credentials, uploaded audio, SQLite data, snapshots, runtime logs, and live deployment evidence remain
+in Render or an approved private backup location. A code change does not itself authorize creating,
+resizing, deleting, or restoring billable Render resources.
 
 ## Open decisions for the implementation plan
 
@@ -255,4 +214,4 @@ The planning phase must explicitly resolve:
 - dependency pinning and supply-chain checks;
 - the initial worker/server choice and SQLite-safe concurrency settings;
 - production storage sizing and whether original audio is included in every backup tier;
-- the measured gate for adopting or rejecting scale-to-zero.
+- the measured behavior of any future platform sleep policy.

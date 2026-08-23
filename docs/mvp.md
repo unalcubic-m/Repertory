@@ -51,7 +51,7 @@ by one.
 
 - `.mp3` is the only accepted extension.
 - Mutagen must parse at least four seconds and no more than six hours of audio.
-- The application limit is 512 MiB; a future private ingress must enforce the same or a lower limit.
+- The application limit is 512 MiB; the hosted platform should enforce the same or a lower request limit where configurable.
 - SHA-256 rejects exact duplicate uploads for the owner.
 - The original is stored under an opaque generated name and is never used on the question page.
 - A second opaque copy is made and Mutagen removes ID3 metadata/artwork before browser playback.
@@ -84,6 +84,11 @@ The locked Python 3.13 environment, strict TypeScript build, and multi-stage `re
 image have been built successfully. The image's production settings pass Django's system check while
 running as UID/GID 10001.
 
+The Render-targeted image was also exercised with a disposable Docker volume on 2026-08-23. Runtime
+migrations, readiness, WhiteNoise static delivery, anonymous login redirects, and SQLite persistence
+across container recreation passed. Render's remote Blueprint validator accepts the deployment shape;
+live provisioning remains gated on payment information for the Starter service and persistent disk.
+
 Still required after this basic MVP:
 
 - physical-browser playback timing for the generated CBR/VBR fixtures;
@@ -93,5 +98,5 @@ Still required after this basic MVP:
 - richer composer/work/recording management, archive controls, search, and progress pages;
 - versioned export/import and an isolated database/media restore test;
 - installable PWA behavior and browser automation;
-- persistent container startup, ingress, backup, and private-exposure acceptance in the separately
-  authorized HomelabTrack phase.
+- persistent Render startup, public-login boundary, backup, and restore acceptance in the deployment
+  phase.
