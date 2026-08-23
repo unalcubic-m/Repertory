@@ -1,6 +1,16 @@
 #!/bin/sh
 set -eu
 
+if [ "$(id -u)" = "0" ]; then
+    mkdir -p /var/lib/repertory/db /var/lib/repertory/media /var/tmp/repertory
+    chown 10001:10001 \
+        /var/lib/repertory \
+        /var/lib/repertory/db \
+        /var/lib/repertory/media \
+        /var/tmp/repertory
+    exec gosu repertory:repertory "$0" "$@"
+fi
+
 .venv/bin/python manage.py migrate --noinput
 
 exec .venv/bin/gunicorn \

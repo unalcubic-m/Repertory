@@ -14,6 +14,11 @@ ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=repertory.settings.production
 WORKDIR /app
 COPY --from=uv /uv /uvx /bin/
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 repertory \
+    && useradd --uid 10001 --gid 10001 --home-dir /app --no-create-home --shell /bin/sh repertory
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY . .
@@ -23,6 +28,5 @@ RUN DJANGO_SECRET_KEY=build-only-not-used-at-runtime \
     .venv/bin/python manage.py collectstatic --noinput \
     && mkdir -p /var/lib/repertory/db /var/lib/repertory/media /var/tmp/repertory \
     && chown -R 10001:10001 /var/lib/repertory /var/tmp/repertory
-USER 10001:10001
 EXPOSE 8000
 CMD ["./ops/start.sh"]

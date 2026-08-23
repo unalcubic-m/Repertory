@@ -87,7 +87,13 @@ running as UID/GID 10001.
 The Render-targeted image was also exercised with a disposable Docker volume on 2026-08-23. Runtime
 migrations, readiness, WhiteNoise static delivery, anonymous login redirects, and SQLite persistence
 across container recreation passed. Render's remote Blueprint validator accepts the deployment shape;
-live provisioning remains gated on payment information for the Starter service and persistent disk.
+the Blueprint provisioned the Starter service and 5 GB persistent disk after billing was configured.
+
+The first live Render start exposed a disk-mount ownership difference that the ordinary named-volume
+test did not reproduce: the empty platform disk hid the image's pre-created directories, so SQLite could
+not open its file as UID 10001. The startup wrapper now creates and assigns only the required disk paths
+while privileged, then drops to UID/GID 10001 before migrations and Gunicorn. A root-owned bind-mount
+test verifies readiness, the unprivileged PID 1, and persistence across container recreation.
 
 Still required after this basic MVP:
 

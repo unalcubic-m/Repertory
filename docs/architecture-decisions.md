@@ -160,6 +160,8 @@ disks.
 Deployment rules:
 
 - Use the repository Dockerfile and Blueprint; deploy only a reviewed commit whose CI passed.
+- Let the container's startup wrapper create the mounted disk directories, assign them to UID/GID
+  `10001`, and immediately drop privileges before migrations or Gunicorn run.
 - Keep one Gunicorn worker while SQLite is the database.
 - Generate `DJANGO_SECRET_KEY` in Render and keep all secrets and user data out of Git.
 - Use WhiteNoise for immutable static assets; never use it or a public bucket for uploaded audio.
