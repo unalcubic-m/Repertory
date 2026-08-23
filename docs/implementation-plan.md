@@ -1,8 +1,25 @@
 # Repertory implementation-planning documentation
 
-## Summary
+## Implementation authorization and first slice
 
-Extend the existing branch and PR [#1](https://github.com/unalcubic-m/Repertory/pull/1) with documentation only. Do not scaffold Django, create migrations, build containers, modify HomelabTrack, deploy, or merge the PR.
+The repository owner explicitly authorized implementation on 2026-08-23 and selected a narrower first
+usable slice: single-owner MP3 import, marking named time ranges such as “Allegro moderato,” and an
+Anki-style typed recognition review. The chosen learning policy starts with randomized excerpts near the
+beginning of each marked part and expands the eligible frontier after successful reviews.
+
+This approval supersedes the planning-only restriction below for the focused `agent/basic-mvp` branch.
+On 2026-08-23 the owner also replaced the planned homelab deployment with a Render-hosted MVP. The
+private hostname, Traefik, WireGuard, HomelabTrack, and Sablier material retained in the historical Phase
+0 task below is superseded for deployment. Current behavior and deferred acceptance work are recorded
+in [`mvp.md`](mvp.md), and current deployment decisions are in
+[`architecture-decisions.md`](architecture-decisions.md).
+
+## Original Phase 0 task (historical)
+
+The original task was to extend branch and PR [#1](https://github.com/unalcubic-m/Repertory/pull/1)
+with documentation only. Its prohibition on application scaffolding applied to that planning task and was
+superseded for the basic MVP by the explicit implementation authorization recorded above. The continuing
+restrictions on modifying HomelabTrack, deploying, or merging PR #1 remain in force.
 
 The planning baseline is the open PR because `main` currently contains only `README.md`; the required `AGENTS.md` and `docs/` inputs exist only on `agent/plan-repertory-architecture`. There are no open issues or other open PRs.
 
@@ -147,26 +164,25 @@ The fallback uses argument arrays without a shell, local-file-only protocols, on
 
 Use ordinary Django forms for management and a strict-TypeScript client only for review/audio/PWA behavior. Define dedicated routes for accounts, composers, works/collections, movements, recordings, import, regions, targets/aliases, due queue, active review, reveal/rating/undo, progress, export/import, settings, manifest, service worker, offline page, and health endpoints.
 
-The PWA uses `start_url: "/"` and `scope: "/"` on `https://repertory.metrekare.cloud`. Its generated cache allow list contains only fingerprinted CSS/JS/icons/fonts, the manifest, and a generic offline page. It never caches navigation responses, authenticated HTML, audio/range requests, answers, aliases, review endpoints/state, exports, account data, health responses, POSTs, or responses marked private/no-store.
+The PWA uses `start_url: "/"` and `scope: "/"` on the exact deployed Render HTTPS origin. Its generated cache allow list contains only fingerprinted CSS/JS/icons/fonts, the manifest, and a generic offline page. It never caches navigation responses, authenticated HTML, audio/range requests, answers, aliases, review endpoints/state, exports, account data, health responses, POSTs, or responses marked private/no-store.
 
-### Security, deployment, and scale-to-zero
+### Security and Render deployment
 
-Production settings hard-code:
+Production settings require:
 
-- `ALLOWED_HOSTS = ["repertory.metrekare.cloud"]`;
-- `CSRF_TRUSTED_ORIGINS = ["https://repertory.metrekare.cloud"]`;
+- the exact `RENDER_EXTERNAL_HOSTNAME` plus optional exact custom hosts;
+- HTTPS CSRF origins derived from those exact hosts;
 - secure, HTTP-only, SameSite=Lax session cookies;
 - secure CSRF cookies;
 - no forwarded host trust;
-- `SECURE_PROXY_SSL_HEADER` only when the backend is source-restricted to the sanitizing private Traefik hop.
+- `SECURE_PROXY_SSL_HEADER` for Render's managed HTTPS proxy hop.
 
 Use closed registration, native Django authentication, database-backed django-axes throttling, normal template escaping, strict CSP/security headers, redacted structured logs, secret files, and fail-closed authorization for every media/review/data route.
 
-The application contract uses port `8000`, UID/GID `10001`, a read-only root filesystem, `/var/lib/repertory/db/repertory.sqlite3`, `/var/lib/repertory/media`, and `/var/tmp/repertory`. SQLite WAL remains on local storage. `/health/live/` checks the process; `/health/ready/` checks database access, migration state, and required writable storage without exposing details. Migrations run as an explicit one-shot command, not during web startup.
+The application contract uses Render's `PORT` (default `8000`), UID/GID `10001`, `/var/lib/repertory/db/repertory.sqlite3`, `/var/lib/repertory/media`, and `/var/tmp/repertory`. SQLite WAL and audio share the attached persistent disk. `/health/live/` checks the process; `/health/ready/` checks database access, migration state, and required writable storage without exposing details. The runtime start script applies migrations before Gunicorn because Render pre-deploy commands cannot access the attached disk.
 
-Scale-to-zero is presently **Defer**. Document candidate pinned Sablier `1.16.1` and Traefik plugin `1.3.0`, with immutable image/plugin digests required before adoption, `failOpen=false`, named-workload authorization, a least-privilege socket proxy, source-restricted API, health-gated wake, and maintenance inhibition.
-
-Adopt only after a 30-day always-running baseline shows operationally meaningful host pressure, at least 256 MiB reclaimable idle RSS, P95 readiness within 15 seconds and P99 within 30 seconds, successful concurrent-wake and active-operation tests, and reviewed Docker permissions. Reject if it requires unrestricted Docker access, fail-open routing, public controller exposure, unacceptable ingress risk, or P95 startup above 30 seconds. Otherwise continue to defer.
+Do not add application-owned scale-to-zero or Docker lifecycle authority. A future Render platform-sleep
+decision requires measured cold-start and active-operation acceptance.
 
 ## Test, backlog, and delivery plan
 
@@ -187,8 +203,8 @@ Adopt only after a 30-day always-running baseline shows operationally meaningful
 11. Root-scope PWA and explicit offline behavior.
 12. Progress, versioned export/import, backup, and isolated restore.
 13. Security, performance, startup, and twenty-target development acceptance.
-14. Application release/deployment compatibility handoff to a separate HomelabTrack phase.
-15. Optional scale-to-zero evaluation after measurements.
+14. Application release and Render deployment acceptance.
+15. Optional Render platform-sleep evaluation after measurements.
 
 Before committing documentation:
 

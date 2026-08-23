@@ -2,7 +2,7 @@
 
 ## Mission
 
-Build Repertory as a private, web-first application that trains recognition of musical works and movements from changing audio excerpts using typed free recall and spaced repetition.
+Build Repertory as a single-owner, web-first application that trains recognition of musical works and movements from changing audio excerpts using typed free recall and spaced repetition.
 
 ## Read before changing anything
 
@@ -26,7 +26,7 @@ The initial architecture is deliberately small:
 - SQLite in WAL mode for the initial single-user deployment
 - Mutagen and FFmpeg/ffprobe for metadata or audio analysis where browser-native behavior is insufficient
 - `uv` for Python dependency management
-- Docker/Compose for reproducible development and later private deployment
+- Docker for reproducible development and a repository-owned Render Blueprint for deployment
 
 Do not replace this with a JavaScript full-stack framework, a separate API service, PostgreSQL, Redis, Celery, Kubernetes, or a native mobile app unless an accepted architecture decision explains why the existing design cannot meet a verified requirement.
 
@@ -53,14 +53,15 @@ Do not replace this with a JavaScript full-stack framework, a separate API servi
 
 ## Security and privacy
 
-The application repository is public, but the intended deployment is private.
+The application repository and Render web endpoint are public-network reachable, but all library,
+review, and media behavior remains authenticated and single-owner.
 
-- Never commit `.env` files, Django secrets, credentials, private hostnames beyond the approved canonical application URL, user databases, review exports, backup configuration, or operational logs.
+- Never commit `.env` files, Django secrets, credentials, user databases, review exports, backup configuration, or operational logs.
 - Keep registration closed. The first deployment is single-user but data should remain user-scoped where doing so does not add disproportionate complexity.
-- Do not add a public DNS/proxy route or assume public exposure is acceptable.
-- The only approved browser-facing production URL is `https://repertory.metrekare.cloud`; do not substitute another subdomain or a path-prefix deployment.
-- Production access is intended through `https://repertory.metrekare.cloud` on LAN and approved WireGuard paths through the private ingress.
-- Raw backend ports must not become a substitute access path.
+- Accept only the exact Render-provided hostname and explicitly configured custom domains; do not use wildcard `ALLOWED_HOSTS` or wildcard CSRF origins.
+- Require HTTPS, secure cookies, CSRF protection, a strong unique owner password, and authenticated media delivery.
+- Store SQLite and all uploaded/derived audio only on the attached persistent disk. Treat the rest of the Render filesystem as ephemeral.
+- Do not add a second public proxy, public object bucket, or anonymous media path for convenience.
 
 ## Development workflow
 
@@ -69,7 +70,8 @@ The application repository is public, but the intended deployment is private.
 - Keep commits small enough to review and roll back.
 - Add or update tests with every behavior change.
 - Before requesting review, run the repository's formatting, linting, type, unit, integration, and browser tests that are relevant to the change.
-- Do not deploy, restart homelab services, change DNS, edit Traefik, mount storage, or start/stop production containers from this repository task unless a separate HomelabTrack phase explicitly authorizes the exact live mutation.
+- Do not change homelab DNS, Traefik, WireGuard, hosts, or containers for Repertory; Render is the selected deployment target.
+- A live Render resource or billable-plan mutation still requires an explicit deployment request and verification of the exact service, branch, disk, region, and rollback boundary.
 
 ## Definition of done for implementation work
 

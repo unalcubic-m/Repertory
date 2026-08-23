@@ -1,0 +1,36 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <title>{% block title %}Repertory{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{% url 'library:dashboard' %}">Repertory</a>
+      {% if user.is_authenticated %}
+        <nav aria-label="Primary navigation">
+          <a href="{% url 'reviews:study' %}">Study</a>
+          <a href="{% url 'library:import' %}">Import MP3</a>
+          <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button class="secondary" type="submit">Log out</button>
+          </form>
+        </nav>
+      {% endif %}
+    </header>
+    <main>
+      {% if messages %}
+        <div class="messages" role="status">
+          {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

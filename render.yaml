@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: repertory-mvp
+    runtime: docker
+    repo: https://github.com/unalcubic-m/Repertory
+    branch: agent/basic-mvp
+    region: frankfurt
+    plan: starter
+    autoDeployTrigger: checksPass
+    numInstances: 1
+    healthCheckPath: /health/ready/
+    disk:
+      name: repertory-data
+      mountPath: /var/lib/repertory
+      sizeGB: 5
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: REPERTORY_DATABASE
+        value: /var/lib/repertory/db/repertory.sqlite3
+      - key: REPERTORY_MEDIA_ROOT
+        value: /var/lib/repertory/media

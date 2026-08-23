@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load library_extras %}
+{% block title %}{{ recording.work.title }} · Repertory{% endblock %}
+{% block content %}
+  <p class="eyebrow">{{ recording.work.composer.name }}</p>
+  <h1>{{ recording.work.title }}</h1>
+  {% if recording.label %}<p>{{ recording.label }}</p>{% endif %}
+  <p class="muted">Duration {{ duration }}</p>
+  <audio controls preload="metadata" src="{% url 'library:recording-audio' recording.public_id %}"></audio>
+  <div class="actions">
+    <a class="button" href="{% url 'library:add-part' recording.public_id %}">Mark a new part</a>
+    <a class="button secondary" href="{% url 'reviews:study' %}">Study due parts</a>
+  </div>
+
+  <section>
+    <h2>Marked parts</h2>
+    <table>
+      <thead><tr><th>Part</th><th>Answer</th><th>Range</th></tr></thead>
+      <tbody>
+        {% for part in recording.parts.all %}
+          <tr>
+            <td><a href="{% url 'library:edit-part' part.public_id %}">{{ part.sequence }}. {{ part.title }}</a></td>
+            <td>{{ part.canonical_answer }}</td>
+            <td>{{ part.start_ms|timecode }}–{{ part.end_ms|timecode }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3">No parts yet. Mark the first movement or passage.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

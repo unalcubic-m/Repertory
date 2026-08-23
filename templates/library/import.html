@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Import MP3 · Repertory{% endblock %}
+{% block content %}
+  <p class="eyebrow">Step 1</p>
+  <h1>Import a recording.</h1>
+  <p class="muted">The original stays private. A metadata-free copy is used for questions.</p>
+  <form class="form-card" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Import MP3</button>
+  </form>
+{% endblock %}
