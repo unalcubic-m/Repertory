@@ -1,8 +1,22 @@
 # Repertory implementation-planning documentation
 
-## Summary
+## Implementation authorization and first slice
 
-Extend the existing branch and PR [#1](https://github.com/unalcubic-m/Repertory/pull/1) with documentation only. Do not scaffold Django, create migrations, build containers, modify HomelabTrack, deploy, or merge the PR.
+The repository owner explicitly authorized implementation on 2026-08-23 and selected a narrower first
+usable slice: single-owner MP3 import, marking named time ranges such as “Allegro moderato,” and an
+Anki-style typed recognition review. The chosen learning policy starts with randomized excerpts near the
+beginning of each marked part and expands the eligible frontier after successful reviews.
+
+This approval supersedes the planning-only restriction below for the focused `agent/basic-mvp` branch;
+it does not authorize deployment or homelab changes. Implemented behavior and deferred acceptance work
+are recorded in [`mvp.md`](mvp.md).
+
+## Original Phase 0 task (historical)
+
+The original task was to extend branch and PR [#1](https://github.com/unalcubic-m/Repertory/pull/1)
+with documentation only. Its prohibition on application scaffolding applied to that planning task and was
+superseded for the basic MVP by the explicit implementation authorization recorded above. The continuing
+restrictions on modifying HomelabTrack, deploying, or merging PR #1 remain in force.
 
 The planning baseline is the open PR because `main` currently contains only `README.md`; the required `AGENTS.md` and `docs/` inputs exist only on `agent/plan-repertory-architecture`. There are no open issues or other open PRs.
 

@@ -1,5 +1,17 @@
 # Repertory delivery roadmap
 
+## Current implementation status — 2026-08-23
+
+The repository owner authorized a basic vertical slice before the broader roadmap is completed. The
+`agent/basic-mvp` branch implements the local single-owner path from MP3 import through marked sections,
+typed answer reveal, FSRS rating, beginning-first frontier expansion, and protected range playback. Its
+automated acceptance evidence is documented in [`mvp.md`](mvp.md).
+
+This does not mark Phases 1–6 complete: the image builds and loads production settings as a non-root
+user, but persistent-container startup, real-browser audio experiments, rating undo, export/restore, PWA
+behavior, broader management UI, and sustained personal-use evidence remain open. Phases 7–8 are
+unchanged and still require separate authorization.
+
 This roadmap keeps application development, production deployment, and optional scale-to-zero as separate acceptance boundaries.
 
 The only approved browser-facing application URL is `https://repertory.metrekare.cloud`.

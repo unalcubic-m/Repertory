@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Study · Repertory{% endblock %}
+{% block content %}
+  <section class="review-shell">
+    <p class="eyebrow">Recognition review</p>
+    {% if session %}
+      <article class="review-card">
+        {% if session.stage == "question" %}
+          <h1>What do you hear?</h1>
+          <p class="muted">The excerpt comes from the portion you have reached so far.</p>
+          <div
+            data-review-player
+            data-start-seconds="{{ excerpt_start_seconds }}"
+            data-end-seconds="{{ excerpt_end_seconds }}"
+          >
+            <audio preload="metadata" src="{% url 'reviews:audio' session.public_id %}"></audio>
+            <button class="play-button" type="button" data-play>Play excerpt</button>
+            <p class="muted" data-playback-status aria-live="polite">Ready to play.</p>
+          </div>
+          <form class="answer-form" method="post" action="{% url 'reviews:answer' session.public_id %}">
+            {% csrf_token %}
+            {{ answer_form.as_p }}
+            <button type="submit">Reveal answer</button>
+          </form>
+        {% elif session.stage == "revealed" %}
+          {% if session.answer_accepted %}
+            <p class="eyebrow result-correct">Recognized</p>
+          {% else %}
+            <p class="eyebrow result-incorrect">Not matched</p>
+          {% endif %}
+          <h1>{{ session.part.canonical_answer }}</h1>
+          <p>{{ session.part.recording.work.composer.name }} · {{ session.part.recording.work.title }}</p>
+          <p><strong>Part:</strong> {{ session.part.title }}</p>
+          <p><strong>Your answer:</strong> {{ session.submitted_answer }}</p>
+          {% if session.matched_answer %}<p class="muted">Matched “{{ session.matched_answer }}”.</p>{% endif %}
+          <h2>How well did you know it?</h2>
+          <form method="post" action="{% url 'reviews:rate' session.public_id %}">
+            {% csrf_token %}
+            <div class="rating-grid">
+              <button class="rating-again" name="rating" value="1" type="submit">Again</button>
+              <button class="rating-hard" name="rating" value="2" type="submit">Hard</button>
+              <button class="rating-good" name="rating" value="3" type="submit">Good</button>
+              <button class="rating-easy" name="rating" value="4" type="submit">Easy</button>
+            </div>
+          </form>
+        {% endif %}
+      </article>
+    {% else %}
+      <article class="review-card">
+        <h1>You’re caught up.</h1>
+        <p class="muted">There are no marked parts due right now.</p>
+        <div class="actions">
+          <a class="button" href="{% url 'library:dashboard' %}">Return to library</a>
+          <a class="button secondary" href="{% url 'library:import' %}">Import another MP3</a>
+        </div>
+      </article>
+    {% endif %}
+  </section>
+{% endblock %}
+{% block scripts %}
+  {% if session and session.stage == "question" %}
+    <script type="module" src="{% static 'repertory/review.js' %}"></script>
+  {% endif %}
+{% endblock %}

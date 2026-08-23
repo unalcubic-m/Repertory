@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+  <p class="eyebrow">Your listening library</p>
+  <h1>Train the music, not one clip.</h1>
+  <p class="muted">{{ due_count }} review{{ due_count|pluralize }} due now.</p>
+  <div class="actions">
+    <a class="button" href="{% url 'reviews:study' %}">Start studying</a>
+    <a class="button secondary" href="{% url 'library:import' %}">Import an MP3</a>
+  </div>
+
+  <div class="cards">
+    {% for recording in recordings %}
+      <article class="card">
+        <p class="eyebrow">{{ recording.work.composer.name }}</p>
+        <h2><a href="{% url 'library:recording-detail' recording.public_id %}">{{ recording.work.title }}</a></h2>
+        {% if recording.label %}<p>{{ recording.label }}</p>{% endif %}
+        <p class="muted">{{ recording.part_count }} marked part{{ recording.part_count|pluralize }}</p>
+      </article>
+    {% empty %}
+      <article class="card">
+        <h2>Start with one recording</h2>
+        <p>Import an MP3, then mark a movement or passage such as “Allegro moderato.”</p>
+      </article>
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -1,0 +1,13 @@
+.git
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.venv
+node_modules
+var
+staticfiles
+static/repertory
+tests
+*.sqlite3
+*.mp3

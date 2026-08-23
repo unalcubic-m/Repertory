@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Mark a part · Repertory{% endblock %}
+{% block content %}
+  <p class="eyebrow">{% if part %}Edit study part{% else %}Step 2{% endif %}</p>
+  <h1>{% if part %}Adjust this part.{% else %}Mark a musical part.{% endif %}</h1>
+  <p>Listen to {{ recording.work.title }}, then capture the start and end of a movement or passage.</p>
+  <section class="form-card" data-part-marker>
+    <audio controls preload="metadata" src="{% url 'library:recording-audio' recording.public_id %}"></audio>
+    <div class="marker-controls">
+      <button class="secondary" type="button" data-mark="start">Use current time as start</button>
+      <button class="secondary" type="button" data-mark="end">Use current time as end</button>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">{% if part %}Update study part{% else %}Save study part{% endif %}</button>
+    </form>
+  </section>
+{% endblock %}
+{% block scripts %}<script type="module" src="{% static 'repertory/part-marker.js' %}"></script>{% endblock %}

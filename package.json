@@ -1,0 +1,11 @@
+{
+  "name": "repertory-browser",
+  "private": true,
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}

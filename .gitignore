@@ -27,6 +27,7 @@ exports/
 backups/
 logs/
 staticfiles/
+var/
 
 # User audio and derived audio
 *.mp3
@@ -50,6 +51,7 @@ staticfiles/
 node_modules/
 dist/
 .vite/
+static/repertory/*.js
 playwright-report/
 test-results/
 
